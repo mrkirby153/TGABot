@@ -5,6 +5,7 @@ import com.mrkirby153.bfs.annotations.PrimaryKey
 import com.mrkirby153.bfs.annotations.Table
 import com.mrkirby153.bfs.model.Model
 import com.mrkirby153.tgabot.Bot
+import com.mrkirby153.tgabot.findEmoteById
 import net.dv8tion.jda.core.entities.Message
 
 @Table("options")
@@ -36,6 +37,15 @@ class PollOption : Model() {
                 chan.getMessageById(messageId).complete()
             } catch (e: Exception) {
                 null
+            }
+        }
+    val asMention: String
+        get() {
+            return if(custom){
+                val emote = findEmoteById(reaction)
+                emote?.asMention ?: "$\$EMOTE NOT FOUND$$"
+            } else {
+                reaction
             }
         }
 }

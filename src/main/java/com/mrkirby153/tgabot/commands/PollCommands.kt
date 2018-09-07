@@ -35,6 +35,22 @@ class PollCommands {
         category.save()
         context.channel.sendMessage("Created category `$name` with id **${category.id}**").queue()
     }
+    @Command(name = "categories", parent = "poll", clearance = 100)
+    fun showCategories(context: Context, cmdContext: CommandContext) {
+        val categories = Model.get(PollCategory::class.java)
+        context.channel.sendMessage(buildString {
+            appendln("The following categories currently exist: ")
+            appendln()
+            appendln("```")
+            if (categories.size > 0)
+                categories.forEach {
+                    appendln(" - ${it.id}. ${it.name} (${it.options.size} options)")
+                }
+            else
+                appendln("No categories currenty exist")
+            appendln("```")
+        }).queue()
+    }
 
     @Command(name = "category delete", parent = "poll", arguments = ["<id:int>"], clearance = 100)
     fun deleteCategory(context: Context, cmdContext: CommandContext) {
@@ -74,9 +90,10 @@ class PollCommands {
     }
 
     @Command(name = "gwinner", parent = "poll", clearance = 100)
-    fun globalWinner(context: Context, cmdContext: CommandContext){
+    fun globalWinner(context: Context, cmdContext: CommandContext) {
         val winnerId = PollManager.globalWinner()
-        context.channel.sendMessage(":tada: The winner is <@$winnerId> (`$winnerId`) :tada:").queue()
+        context.channel.sendMessage(
+                ":tada: The winner is <@$winnerId> (`$winnerId`) :tada:").queue()
     }
 
     @Command(name = "option remove", parent = "poll",
@@ -138,6 +155,41 @@ class PollCommands {
         }).queue()
     }
 
+    @Command(name = "tally-all", parent = "poll", clearance = 100)
+    fun tallyAll(context: Context, cmdContext: CommandContext) {
+        val categories = Model.get(PollCategory::class.java)
+        categories.forEach {
+            val newCmdContext = CommandContext()
+            newCmdContext.put("category", it.id.toInt())
+            pollResults(context, newCmdContext)
+        }
+    }
+
+    @Command(name = "reset", parent = "poll", arguments = ["<id:int>"], clearance = 100)
+    fun resetPoll(context: Context, cmdContext: CommandContext) {
+        val category = Model.where(PollCategory::class.java, "id",
+                cmdContext.getNotNull("id")).first()
+                ?: throw CommandException("Invalid category")
+        context.channel.sendMessage(
+                ":warning: Are you sure you want to reset the poll **${category.name}**? This cannot be undone").queue { msg ->
+            msg.addReaction(GREEN_CHECK).queue {
+                msg.addReaction(RED_CROSS).queue()
+            }
+            Bot.waiter.waitFor(MessageReactionAddEvent::class.java,
+                    Predicate { it.messageId == msg.id && it.user.id == context.author.id && (it.reactionEmote.name == GREEN_CHECK || it.reactionEmote.name == RED_CROSS) },
+                    Consumer {
+                        if (it.reactionEmote.name == GREEN_CHECK) {
+                            Model.where(PollOption::class.java, "category", category.id).delete()
+                            msg.editMessage(":ok_hand: Poll reset").queue()
+                        } else if (it.reactionEmote.name == RED_CROSS) {
+                            msg.editMessage(":no_entry: Canceled!").queue()
+                        }
+                    }, 10, TimeUnit.SECONDS, Runnable {
+                msg.editMessage("$RED_CROSS Aborted!").queue()
+            })
+        }
+    }
+
     @Command(name = "option add", parent = "poll",
             arguments = ["<category:int>", "<channelid:string>", "<mid:string>", "<emoji:string>"],
             clearance = 100)
@@ -153,6 +205,25 @@ class PollCommands {
 
         context.channel.sendMessage(
                 "Added $emoji as an option for category `${category.id}` with id **${option.id}**").queue()
+    }
+
+    @Command(name = "options", parent = "poll", arguments = ["<id:int>"], clearance = 100)
+    fun pollOptions(context: Context, cmdContext: CommandContext) {
+        val category = Model.where(PollCategory::class.java, "id",
+                cmdContext.getNotNull("id")).first()
+                ?: throw CommandException("No category with that ID")
+        context.channel.sendMessage(buildString {
+            appendln("The category `${category.name}` has the following options: ")
+            appendln()
+            val options = category.options
+            if (options.isNotEmpty()) {
+                options.forEach {
+                    appendln(" - ${it.id}. ${it.asMention}")
+                }
+            } else {
+                appendln("_No options_")
+            }
+        }).queue()
     }
 
     @Command(name = "options import", parent = "poll", clearance = 100,
