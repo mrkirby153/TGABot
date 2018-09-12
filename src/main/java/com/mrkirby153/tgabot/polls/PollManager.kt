@@ -37,7 +37,7 @@ object PollManager {
                 } ?: return@forEach
 
                 val r = msg.reactions.firstOrNull {
-                    if (option.custom) {
+                    if (option.custom && it.reactionEmote.isEmote) {
                         it.reactionEmote.emote.id == option.reaction
                     } else {
                         it.reactionEmote.name == option.reaction
@@ -58,11 +58,14 @@ object PollManager {
     fun registerVote(user: User, category: PollCategory, option: PollOption): PollVote? {
         Bot.logger.debug("Registering vote for $user in category ${category.id}")
 
-        val rows = DB.getResults("SELECT * FROM votes WHERE user = ? AND category = ?", user.id,
-                category.id)
-        if (rows.size > 0) {
-            Bot.logger.debug("User has already voted for category ${category.id} ignoring")
-            return null
+        val existingVote = Model.where(PollVote::class.java, "category", category.id).where("user",
+                user.id).first()
+        if (existingVote != null) {
+            Bot.logger.debug(
+                    "$user has voted before (${existingVote.option}) changing to ${option.id}")
+            existingVote.option = option.id
+            existingVote.save()
+            return existingVote
         }
 
         val vote = PollVote()
@@ -90,7 +93,7 @@ object PollManager {
     }
 
     fun addOption(category: PollCategory, channel: TextChannel, messageId: String,
-                  emote: String) : PollOption {
+                  emote: String): PollOption {
         val emoteRegex = Regex("<a?:.*:([0-9]*)>")
         val option = PollOption()
         option.category = category.id
@@ -106,7 +109,8 @@ object PollManager {
             if (findEmoteById(emoteId) == null)
                 throw CommandException("Cannot use `$emote` for polls")
 
-            channel.getMessageById(messageId).complete()?.addReaction(findEmoteById(emoteId))?.queue()
+            channel.getMessageById(messageId).complete()?.addReaction(
+                    findEmoteById(emoteId))?.queue()
         } else {
             option.reaction = emote
             option.custom = false
@@ -118,9 +122,9 @@ object PollManager {
         return option
     }
 
-    fun removeOption(option: PollOption){
+    fun removeOption(option: PollOption) {
         val msg = option.message
-        msg?.reactions?.filter { if(option.custom) it.reactionEmote.id == option.reaction else it.reactionEmote.name == option.reaction }?.forEach { r ->
+        msg?.reactions?.filter { if (option.custom) it.reactionEmote.id == option.reaction else it.reactionEmote.name == option.reaction }?.forEach { r ->
             r.users.forEach {
                 r.removeReaction(it).queue()
             }
