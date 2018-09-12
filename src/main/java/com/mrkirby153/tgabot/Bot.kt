@@ -70,6 +70,7 @@ object Bot {
         SchemaManager.createTables()
 
         QueryBuilder.connectionFactory = ConnectionFactory { SchemaManager.dataSource.connection }
+        QueryBuilder.logQueries = true
         PollManager.onStartup()
         logger.info("Startup complete!")
     }
