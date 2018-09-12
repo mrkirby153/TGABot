@@ -12,6 +12,7 @@ import com.mrkirby153.tgabot.db.models.PollCategory
 import com.mrkirby153.tgabot.db.models.PollOption
 import com.mrkirby153.tgabot.db.models.PollVote
 import com.mrkirby153.tgabot.findEmoteById
+import com.mrkirby153.tgabot.findMessageById
 import com.mrkirby153.tgabot.polls.PollManager
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
@@ -36,6 +37,7 @@ class PollCommands {
         category.save()
         context.channel.sendMessage("Created category `$name` with id **${category.id}**").queue()
     }
+
     @Command(name = "categories", parent = "poll", clearance = 100)
     fun showCategories(context: Context, cmdContext: CommandContext) {
         val categories = Model.get(PollCategory::class.java)
@@ -192,7 +194,7 @@ class PollCommands {
     }
 
     @Command(name = "option add", parent = "poll",
-            arguments = ["<category:int>", "<channelid:string>", "<mid:string>", "<emoji:string>"],
+            arguments = ["<category:int>", "<mid:string>", "<emoji:string>"],
             clearance = 100)
     fun addPollOption(context: Context, cmdContext: CommandContext) {
         val category = Model.where(PollCategory::class.java, "id",
@@ -200,9 +202,9 @@ class PollCommands {
                 "Invalid category!")
         val emoji = cmdContext.getNotNull<String>("emoji")
         val msgId = cmdContext.getNotNull<String>("mid")
-        val option = PollManager.addOption(category,
-                context.guild.getTextChannelById(cmdContext.getNotNull<String>("channelid")), msgId,
-                emoji)
+        val msg = context.guild.findMessageById(msgId) ?: throw CommandException(
+                "Could not find a message with that ID")
+        val option = PollManager.addOption(category, msg.channel as TextChannel, msgId, emoji)
 
         context.channel.sendMessage(
                 "Added $emoji as an option for category `${category.id}` with id **${option.id}**").queue()
@@ -228,15 +230,14 @@ class PollCommands {
     }
 
     @Command(name = "options import", parent = "poll", clearance = 100,
-            arguments = ["<category:int>", "<cid:string>", "<mid:string>"])
+            arguments = ["<category:int>", "<mid:string>"])
     fun importReactions(context: Context, cmdContext: CommandContext) {
         val category = Model.where(PollCategory::class.java, "id",
                 cmdContext.getNotNull("category")).first() ?: throw CommandException(
                 "Invalid category")
 
-        val msg = context.guild.getTextChannelById(
-                cmdContext.getNotNull<String>("cid")).getMessageById(
-                cmdContext.getNotNull<String>("mid")).complete()
+        val msg = context.guild.findMessageById(cmdContext.getNotNull("mid"))
+                ?: throw CommandException("Provided message id was not found")
 
         val emotes = mutableListOf<String>()
 
