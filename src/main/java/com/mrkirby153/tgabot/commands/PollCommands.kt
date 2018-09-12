@@ -10,6 +10,7 @@ import com.mrkirby153.tgabot.GREEN_CHECK
 import com.mrkirby153.tgabot.RED_CROSS
 import com.mrkirby153.tgabot.db.models.PollCategory
 import com.mrkirby153.tgabot.db.models.PollOption
+import com.mrkirby153.tgabot.db.models.PollVote
 import com.mrkirby153.tgabot.findEmoteById
 import com.mrkirby153.tgabot.polls.PollManager
 import net.dv8tion.jda.core.entities.TextChannel
@@ -179,7 +180,7 @@ class PollCommands {
                     Predicate { it.messageId == msg.id && it.user.id == context.author.id && (it.reactionEmote.name == GREEN_CHECK || it.reactionEmote.name == RED_CROSS) },
                     Consumer {
                         if (it.reactionEmote.name == GREEN_CHECK) {
-                            Model.where(PollOption::class.java, "category", category.id).delete()
+                            Model.where(PollVote::class.java, "category", category.id).delete()
                             msg.editMessage(":ok_hand: Poll reset").queue()
                         } else if (it.reactionEmote.name == RED_CROSS) {
                             msg.editMessage(":no_entry: Canceled!").queue()
