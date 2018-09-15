@@ -13,6 +13,7 @@ import com.mrkirby153.tgabot.db.models.PollOption
 import com.mrkirby153.tgabot.db.models.PollVote
 import com.mrkirby153.tgabot.findEmoteById
 import com.mrkirby153.tgabot.findMessageById
+import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
@@ -23,18 +24,25 @@ import java.util.function.Predicate
 
 class PollCommands {
 
-    @Command(name = "category create", parent = "poll", arguments = ["<name:string...>"],
+    @Command(name = "category create", parent = "poll",
+            arguments = ["<channel:string>", "<name:string...>"],
             clearance = 100)
     fun addCategory(context: Context, cmdContext: CommandContext) {
-        val name = cmdContext.getNotNull<String>("name").toLowerCase()
+        val name = cmdContext.getNotNull<String>("name")
+        val channel = cmdContext.getNotNull<String>("channel")
 
         if (Model.where(PollCategory::class.java, "name", name).first() != null) {
             throw CommandException("A category already exists with that name!")
         }
+        if (context.guild.getTextChannelById(channel) == null)
+            throw CommandException("That text channel was not found!")
 
         val category = PollCategory()
         category.name = name
+        category.guild = context.guild.id
+        category.channel = channel
         category.save()
+        PollDisplayManager.update(category)
         context.channel.sendMessage("Created category `$name` with id **${category.id}**").queue()
     }
 
@@ -194,20 +202,46 @@ class PollCommands {
     }
 
     @Command(name = "option add", parent = "poll",
-            arguments = ["<category:int>", "<mid:string>", "<emoji:string>"],
+            arguments = ["<category:int>", "<emoji:string>", "<name:string...>"],
             clearance = 100)
     fun addPollOption(context: Context, cmdContext: CommandContext) {
         val category = Model.where(PollCategory::class.java, "id",
                 cmdContext.getNotNull("category")).first() ?: throw CommandException(
                 "Invalid category!")
         val emoji = cmdContext.getNotNull<String>("emoji")
-        val msgId = cmdContext.getNotNull<String>("mid")
-        val msg = context.guild.findMessageById(msgId) ?: throw CommandException(
+        val msg = context.guild.findMessageById(category.messageId!!) ?: throw CommandException(
                 "Could not find a message with that ID")
-        val option = PollManager.addOption(category, msg.channel as TextChannel, msgId, emoji)
+        val name = cmdContext.getNotNull<String>("name")
+        val option = PollManager.addOption(category, msg.channel as TextChannel,
+                category.messageId!!, emoji, name)
 
+        PollDisplayManager.update(category)
         context.channel.sendMessage(
                 "Added $emoji as an option for category `${category.id}` with id **${option.id}**").queue()
+    }
+
+    @Command(name = "option rename", parent = "poll", arguments = ["<id:int>", "<name:string...>"],
+            clearance = 100)
+    fun renameOption(context: Context, cmdContext: CommandContext) {
+        val option = Model.where(PollOption::class.java, "id",
+                cmdContext.getNotNull("id")).first() ?: throw CommandException("Invalid option!")
+        val newName = cmdContext.getNotNull<String>("name")
+        option.name = newName
+        option.save()
+        context.channel.sendMessage("Updated name of option `${option.id}`").queue()
+        PollDisplayManager.update(Model.where(PollCategory::class.java, "id", option.category).first())
+    }
+
+    @Command(name = "category rename", parent = "poll",
+            arguments = ["<id:int>", "<name:string...>"])
+    fun renameCategory(context: Context, cmdContext: CommandContext) {
+        val category = Model.where(PollCategory::class.java, "id",
+                cmdContext.getNotNull("id")).first() ?: throw CommandException("Invalid category")
+        val newName = cmdContext.getNotNull<String>("name")
+        category.name = newName
+        category.save()
+        PollDisplayManager.update(category)
+        context.channel.sendMessage("Updated name of category `${category.id}`").queue()
     }
 
     @Command(name = "options", parent = "poll", arguments = ["<id:int>"], clearance = 100)
@@ -221,43 +255,11 @@ class PollCommands {
             val options = category.options
             if (options.isNotEmpty()) {
                 options.forEach {
-                    appendln(" - ${it.id}. ${it.asMention}")
+                    appendln(" - ${it.id}. ${it.asMention} - ${it.name}")
                 }
             } else {
                 appendln("_No options_")
             }
-        }).queue()
-    }
-
-    @Command(name = "options import", parent = "poll", clearance = 100,
-            arguments = ["<category:int>", "<mid:string>"])
-    fun importReactions(context: Context, cmdContext: CommandContext) {
-        val category = Model.where(PollCategory::class.java, "id",
-                cmdContext.getNotNull("category")).first() ?: throw CommandException(
-                "Invalid category")
-
-        val msg = context.guild.findMessageById(cmdContext.getNotNull("mid"))
-                ?: throw CommandException("Provided message id was not found")
-
-        val emotes = mutableListOf<String>()
-
-        msg.reactions.forEach {
-            if (it.reactionEmote.isEmote) {
-                emotes.add(it.reactionEmote.emote.asMention)
-            } else {
-                emotes.add(it.reactionEmote.name)
-            }
-        }
-        msg.clearReactions().queue {
-            emotes.forEach { emote ->
-                PollManager.addOption(category, msg.channel as TextChannel, msg.id, emote)
-            }
-        }
-
-        context.channel.sendMessage(buildString {
-            appendln(
-                    "Imported ${emotes.size} emotes into category **${category.id}**: ${emotes.joinToString(
-                            ", ")}")
         }).queue()
     }
 }

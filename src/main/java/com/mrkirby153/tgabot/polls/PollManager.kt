@@ -52,6 +52,7 @@ object PollManager {
                 else
                     msg.addReaction(option.reaction).queue()
             }
+            PollDisplayManager.update(category)
         }
     }
 
@@ -65,6 +66,7 @@ object PollManager {
                     "$user has voted before (${existingVote.option}) changing to ${option.id}")
             existingVote.option = option.id
             existingVote.save()
+            PollDisplayManager.updateDebounced(category)
             return existingVote
         }
 
@@ -73,6 +75,7 @@ object PollManager {
         vote.option = option.id
         vote.user = user.id
         vote.save()
+        PollDisplayManager.updateDebounced(category)
         return vote
     }
 
@@ -93,12 +96,13 @@ object PollManager {
     }
 
     fun addOption(category: PollCategory, channel: TextChannel, messageId: String,
-                  emote: String): PollOption {
+                  emote: String, name: String): PollOption {
         val emoteRegex = Regex("<a?:.*:([0-9]*)>")
         val option = PollOption()
         option.category = category.id
         option.channelId = channel.id
         option.messageId = messageId
+        option.name = name
         if (emoteRegex.matches(emote)) {
             // Custom emote
             val emoteId = emoteRegex.find(emote)?.groups?.get(1)?.value ?: throw CommandException(

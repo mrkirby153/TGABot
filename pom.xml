@@ -62,7 +62,7 @@
     <dependency>
       <groupId>me.mrkirby153</groupId>
       <artifactId>KirbyUtils-Common</artifactId>
-      <version>2.6-SNAPSHOT</version>
+      <version>2.7-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>

@@ -10,7 +10,7 @@ class AdminCommands {
     @Command(name = "shutdown", clearance = 100)
     fun shutdown(context: Context, cmdContext: CommandContext){
         context.channel.sendMessage("Shutting down...").queue {
-            Bot.bot.shutdownAll()
+            Bot.shutdown()
         }
     }
 }

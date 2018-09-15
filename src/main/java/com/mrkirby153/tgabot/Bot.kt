@@ -12,6 +12,7 @@ import com.mrkirby153.tgabot.commands.PollCommands
 import com.mrkirby153.tgabot.db.SchemaManager
 import com.mrkirby153.tgabot.listener.CommandListener
 import com.mrkirby153.tgabot.listener.PollListener
+import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
 import net.dv8tion.jda.core.JDA
 import org.slf4j.LoggerFactory
@@ -73,6 +74,12 @@ object Bot {
         QueryBuilder.logQueries = true
         PollManager.onStartup()
         logger.info("Startup complete!")
+    }
+
+    fun shutdown() {
+        logger.info("Shutting down")
+        PollDisplayManager.shutdown()
+        this.bot.shutdownAll()
     }
 
 

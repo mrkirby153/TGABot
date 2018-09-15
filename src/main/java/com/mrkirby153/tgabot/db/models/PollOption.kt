@@ -25,6 +25,8 @@ class PollOption : Model() {
 
     var reaction = ""
 
+    var name = ""
+
     val votes
         get() = Model.where(PollVote::class.java, "option", this.id).get()
 
