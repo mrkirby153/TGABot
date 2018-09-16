@@ -8,10 +8,16 @@ import com.mrkirby153.tgabot.db.models.PollCategory
 import com.mrkirby153.tgabot.db.models.PollOption
 import com.mrkirby153.tgabot.db.models.PollVote
 import com.mrkirby153.tgabot.findEmoteById
+import com.mrkirby153.tgabot.findMessageById
 import com.mrkirby153.tgabot.listener.PollListener
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
+import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
+import java.io.InputStream
 import java.util.Random
 
 object PollManager {
@@ -146,6 +152,31 @@ object PollManager {
         val random = Random()
 
         return rows[random.nextInt(rows.size)]
+    }
+
+    fun import(stream: InputStream, guild: Guild) {
+        val rootObj = JSONObject(JSONTokener(stream))
+        val categories = (rootObj.get("categories") as JSONArray).map { it as JSONObject }
+        val options = rootObj.get("options") as JSONObject
+
+
+        val pollCategories = mutableListOf<PollCategory>()
+        categories.forEach { c ->
+            Bot.logger.info("Importing ${c.getInt("id")}")
+            val cat = PollCategory()
+            cat.name = c.getString("name")
+            cat.guild = guild.id
+            cat.channel = c.getString("channel")
+            cat.save()
+            pollCategories.add(cat)
+            PollDisplayManager.update(cat)
+            val msg = guild.findMessageById(cat.messageId!!)!!
+            options.getJSONArray(c.getInt("id").toString()).map { it as JSONObject }.forEach {
+                addOption(cat, msg.channel as TextChannel, msg.id, it.getString("emoji"),
+                        it.getString("name"))
+            }
+        }
+        pollCategories.forEach { PollDisplayManager.update(it) }
     }
 
     data class VoteResult(val id: Int, val count: Long, val option: PollOption)

@@ -46,6 +46,17 @@ class PollCommands {
         context.channel.sendMessage("Created category `$name` with id **${category.id}**").queue()
     }
 
+    @Command(name = "import", parent = "poll", clearance = 100)
+    fun import(context: Context, cmdContext: CommandContext){
+        if(context.attachments.size < 1)
+            throw CommandException("Please attach the json data")
+        val attachment = context.attachments.first()
+
+        context.channel.sendMessage("Importing...").queue()
+        PollManager.import(attachment.inputStream, context.guild)
+        context.channel.sendMessage("DONE!").queue()
+    }
+
     @Command(name = "categories", parent = "poll", clearance = 100)
     fun showCategories(context: Context, cmdContext: CommandContext) {
         val categories = Model.get(PollCategory::class.java)
