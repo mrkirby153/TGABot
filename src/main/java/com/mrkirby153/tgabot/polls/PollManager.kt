@@ -92,6 +92,9 @@ object PollManager {
                         Model.where(PollOption::class.java, "id", it).first()
                     }))
         }
+        category.options.filter { it.id.toInt() !in results.map { it.id } }.forEach { o ->
+            results.add(VoteResult(o.id.toInt(), 0, o))
+        }
         return results
     }
 
