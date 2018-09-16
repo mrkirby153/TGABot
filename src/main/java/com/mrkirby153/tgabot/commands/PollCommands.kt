@@ -169,11 +169,27 @@ class PollCommands {
     @Command(name = "tally-all", parent = "poll", clearance = 100)
     fun tallyAll(context: Context, cmdContext: CommandContext) {
         val categories = Model.get(PollCategory::class.java)
-        categories.forEach {
-            val newCmdContext = CommandContext()
-            newCmdContext.put("category", it.id.toInt())
-            pollResults(context, newCmdContext)
+        var msg = ""
+        categories.forEach { category ->
+            msg += "**${category.name}**\n"
+            val results = PollManager.tallyVotes(category)
+            var place = 1
+            results.forEach {
+                val toAdd = " ${place++} ${it.option.asMention} - ${it.option.name} — ${it.count} votes"
+                if(msg.length + toAdd.length > 2000){
+                    context.channel.sendMessage(msg).queue()
+                    msg = ""
+                }
+                msg += "$toAdd\n"
+            }
+            val winner = "\n\n**WINNER:** ${results.sortedBy { it.count }.first().option.name}\n\n" + "─".repeat(15) + "\n"
+            if(msg.length + winner.length > 2000){
+                context.channel.sendMessage(msg).queue()
+                msg = ""
+            }
+            msg += winner
         }
+        context.channel.sendMessage(msg).queue()
     }
 
     @Command(name = "reset", parent = "poll", arguments = ["<id:int>"], clearance = 100)
