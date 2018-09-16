@@ -60,15 +60,15 @@ class PollListener : ListenerAdapter() {
             val m = event.channel.getMessageById(event.messageId).complete()
             msgCache.put(event.messageId, m)
             if (event.reactionEmote.isEmote) {
-                m.removeReaction(event.user, event.reactionEmote.emote).queue()
+                m.removeReaction(event.user, event.reactionEmote.emote).queueAfter(250, TimeUnit.MILLISECONDS)
             } else {
-                m.removeReaction(event.user, event.reactionEmote.name).queue()
+                m.removeReaction(event.user, event.reactionEmote.name).queueAfter(250, TimeUnit.MILLISECONDS)
             }
         } else {
             if (event.reactionEmote.isEmote) {
-                cachedMsg.removeReaction(event.user, event.reactionEmote.emote).queue()
+                cachedMsg.removeReaction(event.user, event.reactionEmote.emote).queueAfter(250, TimeUnit.MILLISECONDS)
             } else {
-                cachedMsg.removeReaction(event.user, event.reactionEmote.name).queue()
+                cachedMsg.removeReaction(event.user, event.reactionEmote.name).queueAfter(250, TimeUnit.MILLISECONDS)
             }
         }
     }
