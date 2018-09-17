@@ -46,6 +46,7 @@ object PollDisplayManager {
         val votes = Model.where(PollVote::class.java, "category", category.id).get()
 
         return buildString {
+            appendln("─".repeat(30))
             appendln(
                     "<:tgalogo:367753930463117313> **${category.name.toUpperCase()}** <:tgalogo:367753930463117313>")
             appendln()
