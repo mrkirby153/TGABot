@@ -57,11 +57,18 @@ object Bot {
         commands = CommandExecutor(prefix = "!", shardManager = bot)
         commands.alertNoClearance = false
         commands.alertUnknownCommand = false
-        commands.clearanceResolver = {
-            if (it.user.id in admins)
-                100
-            else
-                0
+        commands.clearanceResolver = { member ->
+            val roleIds = admins.asSequence().filter { it.startsWith("r:") }.map {
+                it.substring(2)
+            }.toList()
+            val memberIds = admins.asSequence().filter { it.startsWith("u:") }.map {
+                it.substring(2)
+            }
+            when {
+                member.user.id in memberIds -> 100
+                member.roles.asSequence().map { it.id }.filter { it in roleIds }.toList().isNotEmpty() -> 100
+                else -> 0
+            }
         }
         registerCommands()
 
