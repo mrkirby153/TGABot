@@ -181,6 +181,8 @@ object PollResultHandler : ListenerAdapter() {
     }
 
     override fun onMessageReactionAdd(event: MessageReactionAddEvent) {
+        if(event.member == event.guild.selfMember)
+            return // Ignore messages from ourself
         if (event.messageId == tgaMid && event.reactionEmote.name == "\uD83D\uDCEB") {
             event.reaction.removeReaction(event.user).queueAfter(500, TimeUnit.MILLISECONDS)
             dmThrottler.trigger(event.user, 1, TimeUnit.MINUTES)
