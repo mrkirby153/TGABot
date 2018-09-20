@@ -25,7 +25,7 @@ object PollResultHandler : ListenerAdapter() {
 
     val channelTextFile = File("votemessage").createFileIfNotExist()
 
-    val channelMessage = channelTextFile.readLines().joinToString("\n")
+    var channelMessage = channelTextFile.readLines().joinToString("\n")
 
     var tgaMid = ""
     var tgaChanId = ""
@@ -71,6 +71,10 @@ object PollResultHandler : ListenerAdapter() {
             }
         }
     })
+
+    fun updateMessage(){
+        this.channelMessage = channelTextFile.readLines().joinToString("\n")
+    }
 
     fun verifyConfiguration() {
         var channel = Bot.tgaGuild.getTextChannelsByName(channelName, true).firstOrNull()

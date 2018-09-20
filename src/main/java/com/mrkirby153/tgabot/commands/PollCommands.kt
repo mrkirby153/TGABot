@@ -15,6 +15,7 @@ import com.mrkirby153.tgabot.findEmoteById
 import com.mrkirby153.tgabot.findMessageById
 import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
+import com.mrkirby153.tgabot.polls.PollResultHandler
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import java.util.concurrent.TimeUnit
@@ -109,6 +110,14 @@ class PollCommands {
         val msg = context.channel.sendMessage(":timer: Verifying polls").complete()
         PollManager.onStartup()
         msg.editMessage(":ballot_box_with_check: Polls verified successfully").queue()
+    }
+
+    @Command(name = "verify-voted", parent = "poll", clearance = 100)
+    fun verifyVoted(context: Context, cmdContext: CommandContext){
+        val msg = context.channel.sendMessage(":timer: Verifying voted settings").complete()
+        PollResultHandler.updateMessage()
+        PollResultHandler.verifyConfiguration()
+        msg.editMessage(":ballot_box_with_check: Verified").queue()
     }
 
     @Command(name = "gwinner", parent = "poll", clearance = 100)
