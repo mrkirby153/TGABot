@@ -1,5 +1,6 @@
 package com.mrkirby153.tgabot.commands
 
+import com.mrkirby153.bfs.Tuple
 import com.mrkirby153.bfs.model.Model
 import com.mrkirby153.botcore.command.Command
 import com.mrkirby153.botcore.command.CommandException
@@ -191,18 +192,31 @@ class PollCommands {
         val categories = Model.get(PollCategory::class.java)
         var msg = ""
         categories.forEach { category ->
-            msg += "**${category.name}**\n"
+            val s = "**${category.name}**\n"
+            if(msg.length + s.length > 2000) {
+                context.channel.sendMessage(msg).queue()
+                msg = ""
+            }
+            msg += s
             val results = PollManager.tallyVotes(category)
             var place = 1
+            var winnerTuple: Tuple<PollOption, Long>? = null
             results.forEach {
-                val toAdd = " ${place++} ${it.option.asMention} - ${it.option.name} — ${it.count} votes"
-                if(msg.length + toAdd.length > 2000){
+                if(winnerTuple == null){
+                    winnerTuple = Tuple(it.option, it.count)
+                } else {
+                    if(winnerTuple!!.second < it.count){
+                        winnerTuple = Tuple(it.option, it.count)
+                    }
+                }
+                val toAdd = " ${place++} ${it.option.asMention} - ${it.option.name} — ${it.count} votes\n"
+                if(msg.length + toAdd.length > 2000) {
                     context.channel.sendMessage(msg).queue()
                     msg = ""
                 }
-                msg += "$toAdd\n"
+                msg += toAdd
             }
-            val winner = "\n\n**WINNER:** ${results.sortedBy { it.count }.first().option.name}\n\n" + "─".repeat(15) + "\n"
+            val winner = "\n\n**WINNER:** ${winnerTuple?.first?.name}\n\n" + "─".repeat(15) + "\n"
             if(msg.length + winner.length > 2000){
                 context.channel.sendMessage(msg).queue()
                 msg = ""
