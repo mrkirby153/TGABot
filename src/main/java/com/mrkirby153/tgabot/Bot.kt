@@ -14,7 +14,9 @@ import com.mrkirby153.tgabot.listener.CommandListener
 import com.mrkirby153.tgabot.listener.PollListener
 import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
+import com.mrkirby153.tgabot.polls.PollResultHandler
 import net.dv8tion.jda.core.JDA
+import net.dv8tion.jda.core.entities.Guild
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.Properties
@@ -39,6 +41,10 @@ object Bot {
     val jda: JDA
         get() = bot.getShard(0)
 
+    val tgaGuildId = properties.getProperty("guild")
+    val tgaGuild: Guild
+        get() = bot.getGuild(tgaGuildId)!!
+
     @JvmStatic
     fun main(args: Array<String>) {
         (logger as? Logger)?.let {
@@ -53,6 +59,7 @@ object Bot {
         bot.addListener(CommandListener())
         bot.addListener(PollListener())
         bot.addListener(waiter)
+        bot.addListener(PollResultHandler)
 
         commands = CommandExecutor(prefix = "!", shardManager = bot)
         commands.alertNoClearance = false
@@ -79,6 +86,7 @@ object Bot {
 
         QueryBuilder.connectionFactory = ConnectionFactory { SchemaManager.dataSource.connection }
         QueryBuilder.logQueries = true
+        PollResultHandler.verifyConfiguration()
         PollManager.onStartup()
         logger.info("Startup complete!")
     }

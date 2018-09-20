@@ -82,6 +82,7 @@ object PollManager {
         vote.user = user.id
         vote.save()
         PollDisplayManager.updateDebounced(category)
+        PollResultHandler.afterVote(user)
         return vote
     }
 

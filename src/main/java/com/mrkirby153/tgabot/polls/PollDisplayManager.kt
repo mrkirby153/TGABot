@@ -11,7 +11,8 @@ import java.util.function.Consumer
 object PollDisplayManager {
 
     private val debouncer = Debouncer<PollCategory>(Consumer {
-        update(it)
+        if (it != null)
+            update(it)
     }, mode = Debouncer.Mode.BOTH)
 
 
