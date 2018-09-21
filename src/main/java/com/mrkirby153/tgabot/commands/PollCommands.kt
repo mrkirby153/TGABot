@@ -12,7 +12,6 @@ import com.mrkirby153.tgabot.RED_CROSS
 import com.mrkirby153.tgabot.db.models.PollCategory
 import com.mrkirby153.tgabot.db.models.PollOption
 import com.mrkirby153.tgabot.db.models.PollVote
-import com.mrkirby153.tgabot.findEmoteById
 import com.mrkirby153.tgabot.findMessageById
 import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
@@ -171,19 +170,15 @@ class PollCommands {
         context.channel.sendMessage(buildString {
             appendln("**Results for `${category.name}`**")
             appendln()
+            var highest: Tuple<PollManager.VoteResult, Long>? = null
             results.forEach {
-                if (it.option.custom) {
-                    val e = findEmoteById(it.option.reaction)
-                    if (e != null) {
-                        val a = if (e.isAnimated) "a" else ""
-                        appendln(" - <$a:${e.name}:${e.id}> — **${it.count} votes**")
-                    } else {
-                        appendln(" - `${it.option.reaction}` — **${it.count} votes**")
-                    }
-                } else {
-                    appendln(" - ${it.option.reaction} – **${it.count} votes**")
+                appendln(" - ${it.option.asMention} ${it.option.name} **${it.count} votes**")
+                if(highest?.second ?: 0 < it.count){
+                    highest = Tuple(it, it.count)
                 }
             }
+            appendln()
+            appendln("Winner: ${highest?.first?.option?.name ?: "Error"} with **${highest?.second ?: -1} votes**")
         }).queue()
     }
 
