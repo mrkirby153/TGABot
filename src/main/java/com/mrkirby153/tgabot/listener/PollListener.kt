@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit
 class PollListener : ListenerAdapter() {
 
     companion object {
+        val reactionManager = ReactionManager()
+
         val optionCache = CacheBuilder.newBuilder().expireAfterWrite(10,
                 TimeUnit.MINUTES).build(object : CacheLoader<String, List<PollOption>>() {
             override fun load(mid: String): List<PollOption> {
@@ -37,7 +39,7 @@ class PollListener : ListenerAdapter() {
     }
 
     override fun onGuildMessageReactionAdd(event: GuildMessageReactionAddEvent) {
-        if(event.member == event.guild.selfMember)
+        if (event.member == event.guild.selfMember)
             return
         val options = optionCache[event.messageId]
         val option = options.firstOrNull {
@@ -56,19 +58,21 @@ class PollListener : ListenerAdapter() {
             Bot.logger.debug("Registered vote with id ${r.id}")
 
         val cachedMsg = msgCache.getIfPresent(event.messageId)
-        if (cachedMsg == null) {
-            val m = event.channel.getMessageById(event.messageId).complete()
-            msgCache.put(event.messageId, m)
-            if (event.reactionEmote.isEmote) {
-                m.removeReaction(event.user, event.reactionEmote.emote).queueAfter(250, TimeUnit.MILLISECONDS)
-            } else {
-                m.removeReaction(event.user, event.reactionEmote.name).queueAfter(250, TimeUnit.MILLISECONDS)
-            }
+        val msg = cachedMsg ?: event.channel.getMessageById(event.messageId).complete()
+        val future = if (event.reactionEmote.isEmote) {
+            msg.removeReaction(event.user, event.reactionEmote.emote).submitAfter(250,
+                    TimeUnit.MILLISECONDS)
         } else {
-            if (event.reactionEmote.isEmote) {
-                cachedMsg.removeReaction(event.user, event.reactionEmote.emote).queueAfter(250, TimeUnit.MILLISECONDS)
-            } else {
-                cachedMsg.removeReaction(event.user, event.reactionEmote.name).queueAfter(250, TimeUnit.MILLISECONDS)
+            msg.removeReaction(event.user, event.reactionEmote.name).submitAfter(250,
+                    TimeUnit.MILLISECONDS)
+        }
+        reactionManager.enqueue(msg, future)
+
+        if (reactionManager.getToClear().contains(msg.id)) {
+            Bot.logger.debug("Hit threshold for message ${msg.id} clearing and re-adding reactions")
+            reactionManager.cancelAll(msg)
+            msg.clearReactions().queue {
+                PollManager.addOptionReactions(category)
             }
         }
     }

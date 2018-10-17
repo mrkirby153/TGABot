@@ -181,5 +181,18 @@ object PollManager {
         pollCategories.forEach { PollDisplayManager.update(it) }
     }
 
+    fun addOptionReactions(category: PollCategory) {
+        val chan = Bot.jda.getGuildById(category.guild).getTextChannelById(category.channel)
+        chan.getMessageById(category.messageId).queue {msg ->
+            category.options.forEach { opt ->
+                if(opt.custom) {
+                    msg.addReaction(findEmoteById(opt.reaction)).queue()
+                } else {
+                    msg.addReaction(opt.reaction).queue()
+                }
+            }
+        }
+    }
+
     data class VoteResult(val id: Int, val count: Long, val option: PollOption)
 }
