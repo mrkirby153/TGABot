@@ -7,7 +7,9 @@ import com.mrkirby153.bfs.sql.QueryBuilder
 import com.mrkirby153.botcore.command.CommandExecutor
 import com.mrkirby153.botcore.event.EventWaiter
 import com.mrkirby153.botcore.shard.ShardManager
+import com.mrkirby153.tgabot.ama.AmaManager
 import com.mrkirby153.tgabot.commands.AdminCommands
+import com.mrkirby153.tgabot.commands.AmaCommands
 import com.mrkirby153.tgabot.commands.PollCommands
 import com.mrkirby153.tgabot.db.SchemaManager
 import com.mrkirby153.tgabot.listener.CommandListener
@@ -60,6 +62,7 @@ object Bot {
         bot.addListener(PollListener())
         bot.addListener(waiter)
         bot.addListener(PollResultHandler)
+        bot.addListener(AmaManager.Listener())
 
         commands = CommandExecutor(prefix = "!", shardManager = bot)
         commands.alertNoClearance = false
@@ -101,5 +104,6 @@ object Bot {
     private fun registerCommands() {
         commands.register(AdminCommands())
         commands.register(PollCommands())
+        commands.register(AmaCommands())
     }
 }

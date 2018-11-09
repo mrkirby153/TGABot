@@ -39,6 +39,8 @@ object SchemaManager {
                     "CREATE TABLE IF NOT EXISTS `options` (id INT NOT NULL AUTO_INCREMENT, message_id VARCHAR(255), channel_id VARCHAR(255), category int NOT NULL, custom BOOLEAN DEFAULT FALSE, reaction VARCHAR(255) NOT NULL, name TEXT NOT NULL, created_at TIMESTAMP NULL DEFAULT NULL, updated_at TIMESTAMP NULL DEFAULT NULL, PRIMARY KEY (id), FOREIGN KEY (category) REFERENCES categories(id) ON DELETE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")
             con.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS `votes` (id INT AUTO_INCREMENT UNIQUE, user varchar(255) NOT NULL, `option` INT NOT NULL, category INT NOT NULL, created_at TIMESTAMP NULL DEFAULT NULL, updated_at TIMESTAMP NULL DEFAULT NULL, PRIMARY KEY (id), FOREIGN KEY (`option`) REFERENCES options(id) ON DELETE CASCADE , FOREIGN KEY (category) REFERENCES categories(id) ON DELETE CASCADE ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")
+            con.createStatement().executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS `ama_questions` (id INT NOT NULL AUTO_INCREMENT, submitter VARCHAR(255) NOT NULL, question TEXT NOT NULL, message_id VARCHAR(255) NOT NULL, approved TINYINT(1) DEFAULT 0, denied TINYINT(1) DEFAULT 0, created_at TIMESTAMP NULL DEFAULT NULL, updated_at TIMESTAMP NULL DEFAULT NULL, PRIMARY KEY(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")
         }
         Bot.logger.debug("Tables created successfully")
     }
