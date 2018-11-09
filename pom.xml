@@ -146,6 +146,16 @@
       <artifactId>json</artifactId>
       <version>20180813</version>
     </dependency>
+    <dependency>
+      <groupId>com.taskadapter</groupId>
+      <artifactId>trello-java-wrapper</artifactId>
+      <version>LATEST</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.5</version>
+    </dependency>
 
   </dependencies>
 

@@ -12,7 +12,7 @@ class AmaQuestion : Model() {
     var id: Long= 0
 
     @Column("submitter")
-    private var submitterId: String = ""
+    var submitterId: String = ""
 
     var submitter: User?
         get() = Bot.jda.getUserById(this.submitterId)

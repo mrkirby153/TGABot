@@ -69,6 +69,8 @@ object AmaManager {
         amaQuestion.approved = true
         amaQuestion.save()
         // TODO 11/8/18 Put it somewhere??
+        if (Bot.properties.getProperty("trello-enabled") == "true")
+            TrelloUtils.addQuestionToBoard(amaQuestion)
     }
 
     fun denyQuestion(amaQuestion: AmaQuestion) {
@@ -97,6 +99,9 @@ object AmaManager {
                 return
             val amaQuestion = Model.query(AmaQuestion::class.java).where("message_id",
                     event.messageId).first() ?: return
+
+            if (amaQuestion.approved || amaQuestion.denied)
+                return
 
             when (event.reactionEmote.emote) {
                 redXEmote -> denyQuestion(amaQuestion)

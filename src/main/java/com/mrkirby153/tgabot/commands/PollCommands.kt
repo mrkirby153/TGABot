@@ -60,7 +60,7 @@ class PollCommands {
 
     @Command(name = "categories", parent = "poll", clearance = 100)
     fun showCategories(context: Context, cmdContext: CommandContext) {
-        val categories = Model.get(PollCategory::class.java)
+        val categories = Model.query(PollCategory::class.java).get()
         context.channel.sendMessage(buildString {
             appendln("The following categories currently exist: ")
             appendln()
@@ -184,7 +184,7 @@ class PollCommands {
 
     @Command(name = "tally-all", parent = "poll", clearance = 100)
     fun tallyAll(context: Context, cmdContext: CommandContext) {
-        val categories = Model.get(PollCategory::class.java)
+        val categories = Model.query(PollCategory::class.java).get()
         var msg = ""
         categories.forEach { category ->
             val s = "**${category.name}**\n"

@@ -27,7 +27,7 @@ object PollManager {
         // Loop through all the polls and ensure the reactions are in place as well as tally any offline votes
         Bot.logger.info("Verifying polls, this may take some time")
         val msgs = mutableMapOf<String, Message?>()
-        val categories = Model.get(PollCategory::class.java)
+        val categories = Model.query(PollCategory::class.java).get()
         for (i in 0 until categories.size) {
             val category = categories[i]
             category.options.forEach { option ->
