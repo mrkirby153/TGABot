@@ -7,7 +7,6 @@ import com.mrkirby153.tgabot.Bot
 import com.mrkirby153.tgabot.db.models.PollCategory
 import com.mrkirby153.tgabot.db.models.PollOption
 import com.mrkirby153.tgabot.polls.PollManager
-import com.mrkirby153.tgabot.removeReaction
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent
 import net.dv8tion.jda.core.hooks.ListenerAdapter
@@ -59,20 +58,16 @@ class PollListener : ListenerAdapter() {
 
         val cachedMsg = msgCache.getIfPresent(event.messageId)
         val msg = cachedMsg ?: event.channel.getMessageById(event.messageId).complete()
-        val future = if (event.reactionEmote.isEmote) {
-            msg.removeReaction(event.user, event.reactionEmote.emote)?.submitAfter(250,
-                    TimeUnit.MILLISECONDS)
+        if(event.reactionEmote.isEmote) {
+            reactionManager.removeReaction(msg, event.user, event.reactionEmote.emote)
         } else {
-            msg.removeReaction(event.user, event.reactionEmote.name)?.submitAfter(250,
-                    TimeUnit.MILLISECONDS)
+            reactionManager.removeReaction(msg, event.user, event.reactionEmote.name)
         }
-        if (future != null)
-            reactionManager.enqueue(msg, future)
 
-        if (reactionManager.getToClear().contains(msg.id)) {
-            Bot.logger.debug("Hit threshold for message ${msg.id} clearing and re-adding reactions")
-            reactionManager.cancelAll(msg)
-            msg.clearReactions().queueAfter(150, TimeUnit.MILLISECONDS) {
+        Bot.logger.info("REMAINING ${reactionManager.pendingReactions(msg)}")
+        if(reactionManager.pendingReactions(msg) >= ReactionManager.threshold) {
+            Bot.logger.info("Hit threshold for message ${msg.id} clearing and re-adding reactions")
+            reactionManager.removeAllReactions(msg) {
                 PollManager.addOptionReactions(category)
             }
         }

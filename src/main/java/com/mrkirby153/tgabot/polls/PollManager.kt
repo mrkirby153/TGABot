@@ -33,16 +33,10 @@ object PollManager {
         val categories = Model.query(PollCategory::class.java).get()
         for (i in 0 until categories.size) {
             val category = categories[i]
+            var shouldClear = false
             category.options.forEach { option ->
                 val msg = msgs.computeIfAbsent(option.messageId) {
-                    for (j in 0 until Bot.jda.guilds.size) {
-                        val guild = Bot.jda.guilds[j]
-                        val tc = guild.getTextChannelById(option.channelId)
-                        val r = tc?.getMessageById(option.messageId)?.complete()
-                        if (r != null)
-                            return@computeIfAbsent r
-                    }
-                    null
+                    Bot.tgaGuild.findMessageById(it)
                 } ?: return@forEach
 
                 val r = msg.reactions.firstOrNull {
@@ -54,12 +48,15 @@ object PollManager {
                 }
                 r?.users?.stream()?.filter { it.id != msg.guild.selfMember.user.id }?.forEach {
                     registerVote(it, category, option)
-                    r.removeReaction(it).queue()
+                    shouldClear = true
                 }
-                if (option.custom)
-                    msg.addReaction(findEmoteById(option.reaction)).queue()
-                else
-                    msg.addReaction(option.reaction).queue()
+            }
+            if(shouldClear) {
+                if (category.messageId != null) {
+                    Bot.tgaGuild.findMessageById(category.messageId!!)?.clearReactions()?.queue {
+                        PollManager.addOptionReactions(category)
+                    }
+                }
             }
             PollDisplayManager.update(category)
         }

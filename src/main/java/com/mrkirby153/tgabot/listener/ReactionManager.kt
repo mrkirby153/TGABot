@@ -1,35 +1,62 @@
 package com.mrkirby153.tgabot.listener
 
-import com.mrkirby153.tgabot.Bot
+import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Message
-import java.util.concurrent.ScheduledFuture
+import net.dv8tion.jda.core.entities.User
+import net.dv8tion.jda.core.requests.RestAction
+import java.util.LinkedList
 
-class ReactionManager {
+class ReactionManager : Runnable {
 
     companion object {
         var threshold = 10
     }
 
-    private val queuedReactions = mutableMapOf<String, MutableList<ScheduledFuture<*>>>()
+    private val thread = Thread(this)
 
-    fun enqueue(message: Message, future: ScheduledFuture<*>) {
-        val l = queuedReactions.computeIfAbsent(message.id) { mutableListOf() }
-        // Remove tasks that are done
-        l.removeIf { it.isDone }
-        l.add(future)
+    init {
+        thread.name = "ReactionManager"
+        thread.isDaemon = true
+        thread.start()
     }
 
-    fun getToClear(): List<String> {
-        queuedReactions.values.forEach {
-            it.removeIf { it.isDone }
+    private val queue = LinkedList<RemoveReactionTask>()
+
+    override fun run() {
+        while (true) {
+            if (queue.peek() != null) {
+                val task = queue.peek() ?: continue
+                task.ra.complete()
+                queue.remove(task)
+                task.callback?.invoke()
+            }
+            Thread.sleep(1)
         }
-        return queuedReactions.filter { it.value.size >= threshold }.keys.toList()
     }
 
-    fun cancelAll(message: Message) {
-        Bot.adminLog.log("Canceling all queued votes on ${message.id}")
-        queuedReactions[message.id]?.forEach {
-            it.cancel(true)
-        }
+    fun removeReaction(msg: Message, user: User, reaction: String, callback: (() -> Unit)? = null) {
+        val ra = msg.reactions.firstOrNull {
+            !it.reactionEmote.isEmote && it.reactionEmote.name == reaction
+        }?.removeReaction(user) ?: return
+        queue.add(RemoveReactionTask("msg_${msg.id}", ra, msg.id, callback))
     }
+
+    fun removeReaction(msg: Message, user: User, reaction: Emote, callback: (() -> Unit)? = null) {
+        val ra = msg.reactions.firstOrNull {
+            it.reactionEmote.isEmote && it.reactionEmote.emote == reaction
+        }?.removeReaction(user) ?: return
+        queue.add(RemoveReactionTask("msg_${msg.id}", ra, msg.id, callback))
+    }
+
+    fun removeAllReactions(msg: Message, callback: (() -> Unit)? = null) {
+        queue.removeIf { it.msg == msg.id && it.type != "all" } // Remove any pending reactions
+        queue.addFirst(RemoveReactionTask("all", msg.clearReactions(), msg.id, callback))
+    }
+
+    fun pendingReactions(msg: Message): Int {
+        return this.queue.count { it.msg == msg.id }
+    }
+
+    data class RemoveReactionTask(val type: String, val ra: RestAction<*>, val msg: String,
+                                  val callback: (() -> Unit)?)
 }
