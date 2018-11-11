@@ -39,7 +39,7 @@ class PollListener : ListenerAdapter() {
     }
 
     override fun onGuildMessageReactionAdd(event: GuildMessageReactionAddEvent) {
-        if (event.member == event.guild.selfMember)
+        if (event.member.user.id == event.guild.selfMember.user.id)
             return
         val options = optionCache[event.messageId]
         val option = options.firstOrNull {
@@ -60,13 +60,14 @@ class PollListener : ListenerAdapter() {
         val cachedMsg = msgCache.getIfPresent(event.messageId)
         val msg = cachedMsg ?: event.channel.getMessageById(event.messageId).complete()
         val future = if (event.reactionEmote.isEmote) {
-            msg.removeReaction(event.user, event.reactionEmote.emote).submitAfter(250,
+            msg.removeReaction(event.user, event.reactionEmote.emote)?.submitAfter(250,
                     TimeUnit.MILLISECONDS)
         } else {
-            msg.removeReaction(event.user, event.reactionEmote.name).submitAfter(250,
+            msg.removeReaction(event.user, event.reactionEmote.name)?.submitAfter(250,
                     TimeUnit.MILLISECONDS)
         }
-        reactionManager.enqueue(msg, future)
+        if (future != null)
+            reactionManager.enqueue(msg, future)
 
         if (reactionManager.getToClear().contains(msg.id)) {
             Bot.logger.debug("Hit threshold for message ${msg.id} clearing and re-adding reactions")

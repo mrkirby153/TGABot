@@ -14,13 +14,15 @@ const val GREEN_CHECK = "✅"
 val JUMP_LINK_PATTERN: Pattern = Pattern.compile(
         "https?://(canary\\.|ptb\\.)?discordapp.com/channels/(\\d{17,18})/(\\d{17,18})/(\\d{17,18})")
 
-fun Message.removeReaction(user: User, reaction: String): RestAction<Void> {
-    val r = this.reactions.first { it.reactionEmote.name == reaction }
+fun Message.removeReaction(user: User, reaction: String): RestAction<Void>? {
+    Bot.logger.info("Removing $reaction from $user")
+    val r = this.reactions.firstOrNull() { it.reactionEmote.name == reaction } ?: return null
     return r.removeReaction(user)
 }
 
-fun Message.removeReaction(user: User, reaction: Emote): RestAction<Void> {
-    val r = this.reactions.first { it.reactionEmote.isEmote && it.reactionEmote.emote == reaction }
+fun Message.removeReaction(user: User, reaction: Emote): RestAction<Void>? {
+    val r = this.reactions.firstOrNull { it.reactionEmote.isEmote && it.reactionEmote.emote == reaction }
+            ?: return null
     return r.removeReaction(user)
 }
 
