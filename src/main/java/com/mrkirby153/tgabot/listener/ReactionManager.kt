@@ -1,5 +1,6 @@
 package com.mrkirby153.tgabot.listener
 
+import com.mrkirby153.tgabot.Bot
 import net.dv8tion.jda.core.entities.Message
 import java.util.concurrent.ScheduledFuture
 
@@ -19,10 +20,14 @@ class ReactionManager {
     }
 
     fun getToClear(): List<String> {
+        queuedReactions.values.forEach {
+            it.removeIf { it.isDone }
+        }
         return queuedReactions.filter { it.value.size >= threshold }.keys.toList()
     }
 
     fun cancelAll(message: Message) {
+        Bot.adminLog.log("Canceling all queued votes on ${message.id}")
         queuedReactions[message.id]?.forEach {
             it.cancel(true)
         }

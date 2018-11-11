@@ -112,6 +112,35 @@ class PollCommands {
         msg.editMessage(":ballot_box_with_check: Polls verified successfully").queue()
     }
 
+    @Command(name = "trigger-refresh", parent = "poll", clearance = 100,
+            arguments = ["<category:int>"])
+    fun triggerRefresh(context: Context, cmdContext: CommandContext) {
+        val category = Model.where(PollCategory::class.java, "id",
+                cmdContext.getNotNull("category")).first() ?: throw CommandException(
+                "category not found")
+        val msg = Bot.tgaGuild.findMessageById(category.messageId!!) ?: throw CommandException(
+                "Message not found")
+        val statusMsg = context.channel.sendMessage("Refreshing category").complete()
+        msg.reactions.forEach { reaction ->
+            val key = if (reaction.reactionEmote.isEmote) reaction.reactionEmote.id else reaction.reactionEmote.name
+            statusMsg.editMessage("Processing reaction $key").complete()
+            val option = Model.where(PollOption::class.java, "custom",
+                    reaction.reactionEmote.isEmote).where("message_id", msg.id).where("reaction",
+                    key).first()
+            if (option != null) {
+                reaction.users.filter { it != Bot.jda.selfUser }.forEach {
+                    PollManager.registerVote(it, category, option)
+                }
+            }
+        }
+        statusMsg.editMessage("Removing and re-adding reactions...").complete()
+        msg.clearReactions().queue {
+            statusMsg.editMessage("Re-Adding reactions").complete()
+            PollManager.addOptionReactions(category)
+            statusMsg.editMessage("Done").complete()
+        }
+    }
+
     @Command(name = "verify-voted", parent = "poll", clearance = 100)
     fun verifyVoted(context: Context, cmdContext: CommandContext) {
         val msg = context.channel.sendMessage(":timer: Verifying voted settings").complete()

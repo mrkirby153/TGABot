@@ -33,7 +33,7 @@ class LogPump(private val targetChannel: TextChannel, private val sleepDuration:
         while (running) {
             val msg = buildString {
                 while (queued.isNotEmpty()) {
-                    if (queued.peek().length + length > 2000)
+                    if (queued.peek().length + length > 1990)
                         return@buildString
                     val msg = queued.pop()
                     appendln(msg)
