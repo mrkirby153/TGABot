@@ -77,6 +77,7 @@ object PollResultHandler : ListenerAdapter() {
     }
 
     fun verifyConfiguration() {
+        Bot.adminLog.log("Verifying configuration...")
         var channel = Bot.tgaGuild.getTextChannelsByName(channelName, true).firstOrNull()
         if (channel == null) {
             if (Bot.tgaGuild.selfMember.hasPermission(Permission.MANAGE_CHANNEL)) {
@@ -146,6 +147,7 @@ object PollResultHandler : ListenerAdapter() {
                 tgaMid = it.id
             }
         }
+        Bot.adminLog.log("Configuration verified")
     }
 
     fun buildVoteResults(user: User): String {

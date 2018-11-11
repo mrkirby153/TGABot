@@ -98,3 +98,9 @@ fun Guild.findMessageById(id: String): Message? {
     }
     return null
 }
+
+val User.logName
+    get() = "$nameAndDiscrim (`${this.id}`)"
+
+val User.nameAndDiscrim
+    get() = "${this.name}#${this.discriminator}"

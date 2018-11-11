@@ -71,6 +71,7 @@ class PollListener : ListenerAdapter() {
         if (reactionManager.getToClear().contains(msg.id)) {
             Bot.logger.debug("Hit threshold for message ${msg.id} clearing and re-adding reactions")
             reactionManager.cancelAll(msg)
+            // TODO 11/10/18 Store the reaction emotes then re-add them. Categories may be different
             msg.clearReactions().queue {
                 PollManager.addOptionReactions(category)
             }

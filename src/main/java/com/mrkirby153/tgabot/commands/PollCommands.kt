@@ -48,8 +48,8 @@ class PollCommands {
     }
 
     @Command(name = "import", parent = "poll", clearance = 100)
-    fun import(context: Context, cmdContext: CommandContext){
-        if(context.attachments.size < 1)
+    fun import(context: Context, cmdContext: CommandContext) {
+        if (context.attachments.size < 1)
             throw CommandException("Please attach the json data")
         val attachment = context.attachments.first()
 
@@ -113,7 +113,7 @@ class PollCommands {
     }
 
     @Command(name = "verify-voted", parent = "poll", clearance = 100)
-    fun verifyVoted(context: Context, cmdContext: CommandContext){
+    fun verifyVoted(context: Context, cmdContext: CommandContext) {
         val msg = context.channel.sendMessage(":timer: Verifying voted settings").complete()
         PollResultHandler.updateMessage()
         PollResultHandler.verifyConfiguration()
@@ -173,12 +173,13 @@ class PollCommands {
             var highest: Tuple<PollManager.VoteResult, Long>? = null
             results.forEach {
                 appendln(" - ${it.option.asMention} ${it.option.name} **${it.count} votes**")
-                if(highest?.second ?: 0 < it.count){
+                if (highest?.second ?: 0 < it.count) {
                     highest = Tuple(it, it.count)
                 }
             }
             appendln()
-            appendln("Winner: ${highest?.first?.option?.name ?: "Error"} with **${highest?.second ?: -1} votes**")
+            appendln("Winner: ${highest?.first?.option?.name ?: "Error"} with **${highest?.second
+                    ?: -1} votes**")
         }).queue()
     }
 
@@ -188,7 +189,7 @@ class PollCommands {
         var msg = ""
         categories.forEach { category ->
             val s = "**${category.name}**\n"
-            if(msg.length + s.length > 2000) {
+            if (msg.length + s.length > 2000) {
                 context.channel.sendMessage(msg).queue()
                 msg = ""
             }
@@ -197,22 +198,22 @@ class PollCommands {
             var place = 1
             var winnerTuple: Tuple<PollOption, Long>? = null
             results.forEach {
-                if(winnerTuple == null){
+                if (winnerTuple == null) {
                     winnerTuple = Tuple(it.option, it.count)
                 } else {
-                    if(winnerTuple!!.second < it.count){
+                    if (winnerTuple!!.second < it.count) {
                         winnerTuple = Tuple(it.option, it.count)
                     }
                 }
                 val toAdd = " ${place++} ${it.option.asMention} - ${it.option.name} — ${it.count} votes\n"
-                if(msg.length + toAdd.length > 2000) {
+                if (msg.length + toAdd.length > 2000) {
                     context.channel.sendMessage(msg).queue()
                     msg = ""
                 }
                 msg += toAdd
             }
             val winner = "\n\n**WINNER:** ${winnerTuple?.first?.name}\n\n" + "─".repeat(15) + "\n"
-            if(msg.length + winner.length > 2000){
+            if (msg.length + winner.length > 2000) {
                 context.channel.sendMessage(msg).queue()
                 msg = ""
             }
@@ -236,6 +237,7 @@ class PollCommands {
                     Consumer {
                         if (it.reactionEmote.name == GREEN_CHECK) {
                             Model.where(PollVote::class.java, "category", category.id).delete()
+                            PollDisplayManager.update(category)
                             msg.editMessage(":ok_hand: Poll reset").queue()
                         } else if (it.reactionEmote.name == RED_CROSS) {
                             msg.editMessage(":no_entry: Canceled!").queue()
@@ -274,7 +276,8 @@ class PollCommands {
         option.name = newName
         option.save()
         context.channel.sendMessage("Updated name of option `${option.id}`").queue()
-        PollDisplayManager.update(Model.where(PollCategory::class.java, "id", option.category).first())
+        PollDisplayManager.update(
+                Model.where(PollCategory::class.java, "id", option.category).first())
     }
 
     @Command(name = "category rename", parent = "poll",

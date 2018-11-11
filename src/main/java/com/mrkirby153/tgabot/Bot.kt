@@ -14,9 +14,11 @@ import com.mrkirby153.tgabot.commands.PollCommands
 import com.mrkirby153.tgabot.db.SchemaManager
 import com.mrkirby153.tgabot.listener.CommandListener
 import com.mrkirby153.tgabot.listener.PollListener
+import com.mrkirby153.tgabot.logger.LogPump
 import com.mrkirby153.tgabot.polls.PollDisplayManager
 import com.mrkirby153.tgabot.polls.PollManager
 import com.mrkirby153.tgabot.polls.PollResultHandler
+import com.mrkirby153.tgabot.redis.RedisConnection
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.entities.Guild
 import org.slf4j.LoggerFactory
@@ -28,6 +30,8 @@ object Bot {
     lateinit var bot: ShardManager
     lateinit var commands: CommandExecutor
     lateinit var waiter: EventWaiter
+    lateinit var adminLog: LogPump
+    lateinit var redis: RedisConnection
 
     @JvmStatic
     val logger = LoggerFactory.getLogger("TGABot")
@@ -53,6 +57,11 @@ object Bot {
             it.level = logLevel
         }
         (LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as? Logger)?.level = logLevel
+
+        redis = RedisConnection(properties.getProperty("redis-host"),
+                properties.getProperty("redis-port").toInt(),
+                properties.getProperty("redis-password"),
+                properties.getProperty("redis-db").toInt())
         waiter = EventWaiter()
 
         logger.info("Starting up")
@@ -63,6 +72,8 @@ object Bot {
         bot.addListener(waiter)
         bot.addListener(PollResultHandler)
         bot.addListener(AmaManager.Listener())
+
+        adminLog = LogPump(tgaGuild.getTextChannelById(properties.getProperty("log-channel")))
 
         commands = CommandExecutor(prefix = "!", shardManager = bot)
         commands.alertNoClearance = false
@@ -92,6 +103,8 @@ object Bot {
         PollResultHandler.verifyConfiguration()
         PollManager.onStartup()
         logger.info("Startup complete!")
+        adminLog.log("Started up and ready!")
+        adminLog.start()
     }
 
     fun shutdown() {

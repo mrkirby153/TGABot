@@ -10,6 +10,8 @@ import com.mrkirby153.tgabot.db.models.PollVote
 import com.mrkirby153.tgabot.findEmoteById
 import com.mrkirby153.tgabot.findMessageById
 import com.mrkirby153.tgabot.listener.PollListener
+import com.mrkirby153.tgabot.logName
+import com.mrkirby153.tgabot.redis.LeakyBucket
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
@@ -22,6 +24,7 @@ import java.util.Random
 
 object PollManager {
 
+    val pollBucket = LeakyBucket("vote:%s", Bot.redis, 5, 10)
 
     fun onStartup() {
         // Loop through all the polls and ensure the reactions are in place as well as tally any offline votes
@@ -66,9 +69,21 @@ object PollManager {
     fun registerVote(user: User, category: PollCategory, option: PollOption): PollVote? {
         Bot.logger.debug("Registering vote for $user in category ${category.id}")
 
+        Bot.redis.connection.use {
+            val key = "${user.id}:${category.id}"
+            if (pollBucket.incr(key) && (it.get("lv_$key")
+                            ?: "0").toLong() + (10 * 1000) < System.currentTimeMillis()) {
+                it.setex("lv_$key", 60, System.currentTimeMillis().toString())
+                Bot.adminLog.log(
+                        ":warning: ${user.logName} has voted on the category **${category.name}** too quickly")
+            }
+        }
+
+
         val existingVote = Model.where(PollVote::class.java, "category", category.id).where("user",
                 user.id).first()
         if (existingVote != null) {
+            Bot.adminLog.log("${user.logName} changed vote on **${category.name}**")
             Bot.logger.debug(
                     "$user has voted before (${existingVote.option}) changing to ${option.id}")
             existingVote.option = option.id
@@ -84,6 +99,8 @@ object PollManager {
         vote.save()
         PollDisplayManager.updateDebounced(category)
         PollResultHandler.afterVote(user)
+        Bot.adminLog.log(
+                "${user.logName} has voted on **${category.name}**")
         return vote
     }
 
@@ -183,9 +200,9 @@ object PollManager {
 
     fun addOptionReactions(category: PollCategory) {
         val chan = Bot.jda.getGuildById(category.guild).getTextChannelById(category.channel)
-        chan.getMessageById(category.messageId).queue {msg ->
+        chan.getMessageById(category.messageId).queue { msg ->
             category.options.forEach { opt ->
-                if(opt.custom) {
+                if (opt.custom) {
                     msg.addReaction(findEmoteById(opt.reaction)).queue()
                 } else {
                     msg.addReaction(opt.reaction).queue()
