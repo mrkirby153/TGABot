@@ -6,15 +6,16 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException
 import java.text.SimpleDateFormat
 import java.util.LinkedList
 
-class LogPump(private val targetChannel: TextChannel) : Runnable {
+class LogPump(private val targetChannel: TextChannel, private val sleepDuration: Long = 5000) :
+        Runnable {
 
     private val queued = LinkedList<String>()
 
     var running = true
 
-    val interval = 100L
-
     private val thread: Thread = Thread(this)
+
+    private var quietPeriod = -1L
 
     init {
         thread.name = "LogPump/#${targetChannel.name}"
@@ -44,11 +45,17 @@ class LogPump(private val targetChannel: TextChannel) : Runnable {
             try {
                 targetChannel.sendMessage(msg).complete(false)
             } catch (e: RateLimitedException) {
-                // We got ratelimited, batch messages for the next 60 seconds or the retry after, whichever is longer
-                Thread.sleep(Math.max(e.retryAfter, 60 * 1000))
-                continue
+                Bot.logger.debug("Got ratelimited entering quiet period")
+                // We got ratelimited, batch messages for the next 60 seconds
+                quietPeriod = System.currentTimeMillis() + 60000
             }
-            Thread.yield()
+            if (quietPeriod != -1L) {
+                if (quietPeriod < System.currentTimeMillis())
+                    quietPeriod = -1L
+                Thread.sleep(this.sleepDuration)
+            } else {
+                Thread.yield()
+            }
         }
     }
 
@@ -59,7 +66,7 @@ class LogPump(private val targetChannel: TextChannel) : Runnable {
             Bot.logger.warn("dropping message \"$msg\" as it's too long")
             return
         }
-        queued.add(msg)
+        queued.add(msgAndTimestamp)
     }
 
 }
