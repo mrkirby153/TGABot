@@ -1,5 +1,6 @@
 package com.mrkirby153.tgabot.listener
 
+import com.mrkirby153.tgabot.Bot
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.User
@@ -24,11 +25,20 @@ class ReactionManager : Runnable {
 
     override fun run() {
         while (true) {
-            if (queue.peek() != null) {
-                val task = queue.peek() ?: continue
-                task.ra.complete()
-                queue.remove(task)
-                task.callback?.invoke()
+            try {
+                if (queue.peek() != null) {
+                    val task = queue.peek() ?: continue
+                    if (task.type == "all") {
+                        Bot.logger.debug("Removing all reactions on ${task.msg}")
+                        // Remove all pending reaction removals
+                        queue.removeIf { it.msg == task.msg && it.type != "all" }
+                    }
+                    task.ra.complete()
+                    queue.remove(task)
+                    task.callback?.invoke()
+                }
+            } catch (e: Exception) {
+                Bot.logger.error("Encountered an error", e)
             }
             Thread.sleep(1)
         }
@@ -49,13 +59,15 @@ class ReactionManager : Runnable {
     }
 
     fun removeAllReactions(msg: Message, callback: (() -> Unit)? = null) {
-        queue.removeIf { it.msg == msg.id && it.type != "all" } // Remove any pending reactions
+        // Queue up the all removal task next
         queue.addFirst(RemoveReactionTask("all", msg.clearReactions(), msg.id, callback))
     }
 
     fun pendingReactions(msg: Message): Int {
         return this.queue.count { it.msg == msg.id }
     }
+
+    fun queueSize(): Int = this.queue.size
 
     data class RemoveReactionTask(val type: String, val ra: RestAction<*>, val msg: String,
                                   val callback: (() -> Unit)?)
