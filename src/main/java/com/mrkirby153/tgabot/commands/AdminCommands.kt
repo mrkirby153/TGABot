@@ -4,8 +4,10 @@ import com.mrkirby153.botcore.command.Command
 import com.mrkirby153.botcore.command.Context
 import com.mrkirby153.botcore.command.args.CommandContext
 import com.mrkirby153.tgabot.Bot
+import com.mrkirby153.tgabot.listener.PollListener
 import com.mrkirby153.tgabot.listener.ReactionManager
 import com.mrkirby153.tgabot.polls.PollManager
+import me.mrkirby153.kcutils.Time
 
 class AdminCommands {
 
@@ -27,7 +29,7 @@ class AdminCommands {
         }
     }
 
-    @Command(name = "spam-alert", clearance = 100, arguments = ["<count:int>",  "<period:int>"])
+    @Command(name = "spam-alert", clearance = 100, arguments = ["<count:int>", "<period:int>"])
     fun spamAlert(context: Context, cmdContext: CommandContext) {
         val count = cmdContext.getNotNull<Int>("count")
         val period = cmdContext.getNotNull<Int>("period")
@@ -36,5 +38,20 @@ class AdminCommands {
         Bot.adminLog.log(
                 "${context.author.asMention} updated the alert threshold to $count in $period. This may trigger some false positives")
         context.channel.sendMessage("Spam alert threshold updated to $count/$period").queue()
+    }
+
+    @Command(name = "ping", parent = "pollbot", clearance = 100)
+    fun pingCommand(context: Context, cmdContext: CommandContext) {
+        val t = System.currentTimeMillis()
+        context.channel.sendTyping().queue {
+            context.channel.sendMessage(
+                    ":ping_pong: Pong! ${Time.format(1, System.currentTimeMillis() - t)}").queue()
+        }
+    }
+
+    @Command(name = "stats", parent = "pollbot", clearance = 100)
+    fun reactionManagerStats(context: Context, cmdContext: CommandContext) {
+        context.channel.sendMessage(
+                "There are `${PollListener.reactionManager.queueSize()}` pending reaction removals").queue()
     }
 }
