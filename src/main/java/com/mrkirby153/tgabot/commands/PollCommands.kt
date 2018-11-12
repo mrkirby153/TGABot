@@ -35,16 +35,20 @@ class PollCommands {
         if (Model.where(PollCategory::class.java, "name", name).first() != null) {
             throw CommandException("A category already exists with that name!")
         }
-        if (context.guild.getTextChannelById(channel) == null)
+
+        val re = Regex("\\d{17,18}")
+
+        val channelId = re.findAll(channel).first().value
+        if (context.guild.getTextChannelById(channelId) == null)
             throw CommandException("That text channel was not found!")
 
         val category = PollCategory()
         category.name = name
         category.guild = context.guild.id
-        category.channel = channel
+        category.channel = channelId
         category.save()
         PollDisplayManager.update(category)
-        context.channel.sendMessage("Created category `$name` with id **${category.id}**").queue()
+        context.channel.sendMessage("Created category `$name` with id **${category.id}** in <#$channelId>").queue()
     }
 
     @Command(name = "import", parent = "poll", clearance = 100)
@@ -75,7 +79,7 @@ class PollCommands {
         }).queue()
     }
 
-    @Command(name = "category delete", parent = "poll", arguments = ["<id:int>"], clearance = 100)
+    @Command(name = "category remove", parent = "poll", arguments = ["<id:int>"], clearance = 100)
     fun deleteCategory(context: Context, cmdContext: CommandContext) {
         val cat = Model.where(PollCategory::class.java, "id", cmdContext.getNotNull("id")).first()
                 ?: throw CommandException("Category not found!")
@@ -162,7 +166,7 @@ class PollCommands {
         val option = Model.query(PollOption::class.java).where("id",
                 cmdContext.getNotNull("option")).first() ?: throw CommandException(
                 "Not a valid option")
-
+        val cat = Model.where(PollCategory::class.java, "id", option.category).first()
         if (option.votes.size > 0) {
             val m = context.channel.sendMessage(
                     ":warning: This option has **${option.votes.size}** votes are you sure you want to delete it? This can't be undone").complete()
@@ -178,6 +182,7 @@ class PollCommands {
                     }
                 } else if (it.reactionEmote.name == GREEN_CHECK) {
                     PollManager.removeOption(option)
+                    PollDisplayManager.update(cat)
                     m.editMessage(GREEN_CHECK).queue()
                 }
             }, 10, TimeUnit.SECONDS, Runnable {
@@ -186,6 +191,7 @@ class PollCommands {
             return
         }
         PollManager.removeOption(option)
+        PollDisplayManager.update(cat)
         context.channel.sendMessage("Deleted option **${option.id}**").queue()
     }
 
