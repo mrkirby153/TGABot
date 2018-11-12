@@ -7,6 +7,8 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter
 class CommandListener : ListenerAdapter() {
 
     override fun onGuildMessageReceived(event: GuildMessageReceivedEvent) {
-        Bot.commands.execute(event.message)
+        Bot.executor.submit {
+            Bot.commands.execute(event.message)
+        }
     }
 }

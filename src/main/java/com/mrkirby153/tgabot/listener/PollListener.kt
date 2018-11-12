@@ -38,37 +38,40 @@ class PollListener : ListenerAdapter() {
     }
 
     override fun onGuildMessageReactionAdd(event: GuildMessageReactionAddEvent) {
-        if (event.member.user.id == event.guild.selfMember.user.id)
-            return
-        val options = optionCache[event.messageId]
-        val option = options.firstOrNull {
+        Bot.executor.submit {
+            if (event.member.user.id == event.guild.selfMember.user.id)
+                return@submit
+            val options = optionCache[event.messageId]
+            val option = options.firstOrNull {
+                if (event.reactionEmote.isEmote) {
+                    it.custom && it.reaction == event.reactionEmote.id
+                } else {
+                    it.reaction == event.reactionEmote.name
+                }
+            } ?: return@submit
+
+            val category = categoryCache[option.category]
+
+            val r = PollManager.registerVote(event.user, category, option)
+
+            if (r != null)
+                Bot.logger.debug("Registered vote with id ${r.id}")
+
+            val cachedMsg = msgCache.getIfPresent(event.messageId)
+            val msg = cachedMsg ?: event.channel.getMessageById(event.messageId).complete()
             if (event.reactionEmote.isEmote) {
-                it.custom && it.reaction == event.reactionEmote.id
+                reactionManager.removeReaction(msg, event.user, event.reactionEmote.emote)
             } else {
-                it.reaction == event.reactionEmote.name
+                reactionManager.removeReaction(msg, event.user, event.reactionEmote.name)
             }
-        } ?: return
 
-        val category = categoryCache[option.category]
-
-        val r = PollManager.registerVote(event.user, category, option)
-
-        if (r != null)
-            Bot.logger.debug("Registered vote with id ${r.id}")
-
-        val cachedMsg = msgCache.getIfPresent(event.messageId)
-        val msg = cachedMsg ?: event.channel.getMessageById(event.messageId).complete()
-        if(event.reactionEmote.isEmote) {
-            reactionManager.removeReaction(msg, event.user, event.reactionEmote.emote)
-        } else {
-            reactionManager.removeReaction(msg, event.user, event.reactionEmote.name)
-        }
-
-        Bot.logger.info("REMAINING ${reactionManager.pendingReactions(msg)}")
-        if(reactionManager.pendingReactions(msg) >= ReactionManager.threshold) {
-            Bot.logger.info("Hit threshold for message ${msg.id} clearing and re-adding reactions")
-            reactionManager.removeAllReactions(msg) {
-                PollManager.addOptionReactions(category)
+            Bot.logger.info("REMAINING ${reactionManager.pendingReactions(msg)}")
+            if (reactionManager.pendingReactions(msg) >= ReactionManager.threshold) {
+                Bot.logger.info(
+                        "Hit threshold for message ${msg.id} clearing and re-adding reactions")
+                reactionManager.removeAllReactions(msg) {
+                    PollManager.addOptionReactions(category)
+                }
             }
         }
     }

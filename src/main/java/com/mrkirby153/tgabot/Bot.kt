@@ -24,6 +24,7 @@ import net.dv8tion.jda.core.entities.Guild
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.Properties
+import java.util.concurrent.Executors
 
 object Bot {
 
@@ -50,6 +51,8 @@ object Bot {
     val tgaGuildId = properties.getProperty("guild")
     val tgaGuild: Guild
         get() = bot.getGuild(tgaGuildId)!!
+
+    val executor = Executors.newCachedThreadPool()
 
     @JvmStatic
     fun main(args: Array<String>) {
