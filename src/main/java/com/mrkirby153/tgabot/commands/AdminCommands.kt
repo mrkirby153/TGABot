@@ -51,7 +51,10 @@ class AdminCommands {
 
     @Command(name = "stats", parent = "pollbot", clearance = 100)
     fun reactionManagerStats(context: Context, cmdContext: CommandContext) {
+        val v = "Queue: `${PollListener.reactionManager.getQueue(true)}`"
         context.channel.sendMessage(
                 "There are `${PollListener.reactionManager.queueSize()}` pending reaction removals").queue()
+        if(v.length < 2000)
+            context.channel.sendMessage(v).complete()
     }
 }

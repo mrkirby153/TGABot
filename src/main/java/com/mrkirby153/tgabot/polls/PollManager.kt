@@ -47,7 +47,7 @@ object PollManager {
                     }
                 }
                 r?.users?.stream()?.filter { it.id != msg.guild.selfMember.user.id }?.forEach {
-                    registerVote(it, category, option)
+                    registerVote(it, category, option, false)
                     shouldClear = true
                 }
             }
@@ -65,7 +65,7 @@ object PollManager {
         Bot.logger.debug("Poll verification complete!")
     }
 
-    fun registerVote(user: User, category: PollCategory, option: PollOption): PollVote? {
+    fun registerVote(user: User, category: PollCategory, option: PollOption, log: Boolean = true): PollVote? {
         Bot.logger.debug("Registering vote for $user in category ${category.id}")
 
         Bot.redis.connection.use {
@@ -82,7 +82,9 @@ object PollManager {
         val existingVote = Model.where(PollVote::class.java, "category", category.id).where("user",
                 user.id).first()
         if (existingVote != null) {
-            Bot.adminLog.log("${user.logName} changed vote on **${category.name}**")
+            if(log) {
+                Bot.adminLog.log("${user.logName} changed vote on **${category.name}**")
+            }
             Bot.logger.debug(
                     "$user has voted before (${existingVote.option}) changing to ${option.id}")
             existingVote.option = option.id
@@ -98,8 +100,10 @@ object PollManager {
         vote.save()
         PollDisplayManager.updateDebounced(category)
         PollResultHandler.afterVote(user)
-        Bot.adminLog.log(
-                "${user.logName} has voted on **${category.name}**")
+        if(log) {
+            Bot.adminLog.log(
+                    "${user.logName} has voted on **${category.name}**")
+        }
         return vote
     }
 

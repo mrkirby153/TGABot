@@ -52,7 +52,7 @@ object Bot {
     val tgaGuild: Guild
         get() = bot.getGuild(tgaGuildId)!!
 
-    val executor = Executors.newCachedThreadPool()
+    val executor = Executors.newFixedThreadPool(properties.getProperty("num-threads", "10").toInt())
 
     @JvmStatic
     fun main(args: Array<String>) {

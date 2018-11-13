@@ -65,8 +65,9 @@ class PollListener : ListenerAdapter() {
                 reactionManager.removeReaction(msg, event.user, event.reactionEmote.name)
             }
 
-            Bot.logger.info("REMAINING ${reactionManager.pendingReactions(msg)}")
-            if (reactionManager.pendingReactions(msg) >= ReactionManager.threshold) {
+            val pending = reactionManager.pendingReactions(msg)
+            Bot.logger.info("Remaining on ${msg.id}: $pending")
+            if (pending >= ReactionManager.threshold) {
                 Bot.logger.info(
                         "Hit threshold for message ${msg.id} clearing and re-adding reactions")
                 reactionManager.removeAllReactions(msg) {
