@@ -44,4 +44,8 @@ object SchemaManager {
         }
         Bot.logger.debug("Tables created successfully")
     }
+
+    fun shutdown() {
+        this.dataSource.close()
+    }
 }

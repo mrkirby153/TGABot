@@ -33,4 +33,8 @@ class RedisConnection(host: String, port: Int, password: String?,
         if (this.db.toInt() != dbNumber)
             this.select(dbNumber)
     }
+
+    fun shutdown() {
+        jedisPool.close()
+    }
 }

@@ -30,8 +30,8 @@ class LogPump(private val targetChannel: TextChannel, private val sleepDuration:
     override fun run() {
         Bot.logger.debug(
                 "Starting log pump to #${targetChannel.name}")
-        while (true) {
-            if(queued.isNotEmpty()) {
+        while (running) {
+            if (queued.isNotEmpty()) {
                 val msg = buildString {
                     while (queued.isNotEmpty()) {
                         if (queued.peek().length + length > 1990)
@@ -69,6 +69,16 @@ class LogPump(private val targetChannel: TextChannel, private val sleepDuration:
             return
         }
         queued.add(msgAndTimestamp)
+    }
+
+    fun shutdown(waitFor: Boolean = false) {
+        running = false
+        if (waitFor)
+            try {
+                thread.join(500)
+            } catch (e: Exception) {
+                // Ignore
+            }
     }
 
 }

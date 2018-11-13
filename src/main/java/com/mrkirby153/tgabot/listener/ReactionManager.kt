@@ -15,6 +15,8 @@ class ReactionManager : Runnable {
 
     private val thread = Thread(this)
 
+    private var running = true
+
     init {
         thread.name = "ReactionManager"
         thread.isDaemon = true
@@ -24,7 +26,7 @@ class ReactionManager : Runnable {
     private val queue = LinkedList<RemoveReactionTask>()
 
     override fun run() {
-        while (true) {
+        while (running) {
             try {
                 if (queue.peek() != null) {
                     val task = queue.peek() ?: continue
@@ -68,6 +70,16 @@ class ReactionManager : Runnable {
     }
 
     fun queueSize(): Int = this.queue.size
+
+    fun shutdown(waitFor: Boolean = false) {
+        this.running = false
+        if (waitFor)
+            try {
+                this.thread.join(500)
+            } catch (e: Exception) {
+                // Ignore
+            }
+    }
 
     data class RemoveReactionTask(val type: String, val ra: RestAction<*>, val msg: String,
                                   val callback: (() -> Unit)?)

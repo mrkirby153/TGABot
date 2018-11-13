@@ -115,6 +115,13 @@ object Bot {
         logger.info("Shutting down")
         PollDisplayManager.shutdown()
         this.bot.shutdownAll()
+        logger.info("Shutting down logger")
+        this.adminLog.shutdown(true)
+        logger.info("Shutting down reaction listener")
+        PollListener.reactionManager.shutdown(true)
+        redis.shutdown()
+        SchemaManager.shutdown()
+        System.exit(0)
     }
 
 
