@@ -4,6 +4,7 @@ import com.mrkirby153.bfs.model.Model
 import com.mrkirby153.bfs.sql.QueryBuilder
 import com.mrkirby153.tgabot.Bot
 import com.mrkirby153.tgabot.db.models.PollCategory
+import com.mrkirby153.tgabot.logName
 import me.mrkirby153.kcutils.createFileIfNotExist
 import me.mrkirby153.kcutils.timing.Throttler
 import net.dv8tion.jda.core.Permission
@@ -55,9 +56,11 @@ object PollResultHandler : ListenerAdapter() {
                     "${u.asMention} I've sent a copy of your votes to your DMs!").queue {
                 it.delete().queueAfter(30, TimeUnit.SECONDS)
             }
+            Bot.adminLog.log(":mailbox_with_mail: Sent ${u.logName} their votes")
         } catch (e: Exception) {
             if (e is ErrorResponseException) {
                 if (e.errorCode == ErrorResponse.CANNOT_SEND_TO_USER.code) {
+                    Bot.adminLog.log(":warning: ${u.logName} has their DMs closed, cannot send DM")
                     Bot.tgaGuild.getTextChannelById(tgaChanId).sendMessage(
                             "${u.asMention} Please open your DMs!\n\nYou can open your DMs by right clicking on the server icon, clicking `Privacy Settings` and ensuring `Allow DMs from server members` is checked.").queue {
                         it.delete().queueAfter(15, TimeUnit.SECONDS)
@@ -65,6 +68,8 @@ object PollResultHandler : ListenerAdapter() {
                     return@Consumer
                 }
             }
+            Bot.adminLog.log(
+                    ":rotating_light: An error occurred when sending DMs to ${u.logName}: ${e.javaClass.name} ${e.message}")
             Bot.tgaGuild.getTextChannelById(tgaChanId).sendMessage(
                     "${u.asMention} An unknown error occurred. Please report this to the moderators").queue {
                 it.delete().queueAfter(30, TimeUnit.SECONDS)
@@ -72,7 +77,7 @@ object PollResultHandler : ListenerAdapter() {
         }
     })
 
-    fun updateMessage(){
+    fun updateMessage() {
         this.channelMessage = channelTextFile.readLines().joinToString("\n")
     }
 
@@ -187,7 +192,7 @@ object PollResultHandler : ListenerAdapter() {
     }
 
     override fun onMessageReactionAdd(event: MessageReactionAddEvent) {
-        if(event.member == event.guild.selfMember)
+        if (event.member == event.guild.selfMember)
             return // Ignore messages from ourself
         if (event.messageId == tgaMid && event.reactionEmote.name == "\uD83D\uDCEB") {
             event.reaction.removeReaction(event.user).queueAfter(500, TimeUnit.MILLISECONDS)

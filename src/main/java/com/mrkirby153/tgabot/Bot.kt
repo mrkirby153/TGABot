@@ -96,6 +96,8 @@ object Bot {
         }
         registerCommands()
 
+        adminLog.start()
+
         SchemaManager.connect(properties.getProperty("db-username"),
                 properties.getProperty("db-password"), properties.getProperty("db-database"),
                 properties.getProperty("db-host"))
@@ -107,7 +109,6 @@ object Bot {
         PollManager.onStartup()
         logger.info("Startup complete!")
         adminLog.log("Started up and ready!")
-        adminLog.start()
     }
 
     fun shutdown() {

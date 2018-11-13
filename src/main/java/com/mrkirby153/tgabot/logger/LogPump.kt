@@ -30,32 +30,34 @@ class LogPump(private val targetChannel: TextChannel, private val sleepDuration:
     override fun run() {
         Bot.logger.debug(
                 "Starting log pump to #${targetChannel.name}")
-        while (running) {
-            val msg = buildString {
-                while (queued.isNotEmpty()) {
-                    if (queued.peek().length + length > 1990)
-                        return@buildString
-                    val msg = queued.pop()
-                    appendln(msg)
+        while (true) {
+            if(queued.isNotEmpty()) {
+                val msg = buildString {
+                    while (queued.isNotEmpty()) {
+                        if (queued.peek().length + length > 1990)
+                            return@buildString
+                        val msg = queued.pop()
+                        appendln(msg)
+                    }
+                }
+                if (msg.isEmpty() || msg.isBlank())
+                    continue
+                Bot.logger.debug("Logging message")
+                try {
+                    targetChannel.sendMessage(msg).complete(false)
+                } catch (e: RateLimitedException) {
+                    Bot.logger.debug("Got ratelimited entering quiet period")
+                    // We got ratelimited, batch messages for the next 60 seconds
+                    quietPeriod = System.currentTimeMillis() + 60000
+                }
+                if (quietPeriod != -1L) {
+                    if (quietPeriod < System.currentTimeMillis())
+                        quietPeriod = -1L
+                    Thread.sleep(this.sleepDuration)
+                    continue
                 }
             }
-            if (msg.isEmpty() || msg.isBlank())
-                continue
-            Bot.logger.debug("Logging message")
-            try {
-                targetChannel.sendMessage(msg).complete(false)
-            } catch (e: RateLimitedException) {
-                Bot.logger.debug("Got ratelimited entering quiet period")
-                // We got ratelimited, batch messages for the next 60 seconds
-                quietPeriod = System.currentTimeMillis() + 60000
-            }
-            if (quietPeriod != -1L) {
-                if (quietPeriod < System.currentTimeMillis())
-                    quietPeriod = -1L
-                Thread.sleep(this.sleepDuration)
-            } else {
-                Thread.yield()
-            }
+            Thread.sleep(5)
         }
     }
 
