@@ -57,6 +57,8 @@ object PollManager {
                         PollManager.addOptionReactions(category)
                     }
                 }
+            } else {
+                PollManager.addOptionReactions(category)
             }
             PollDisplayManager.update(category)
         }
