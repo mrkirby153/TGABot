@@ -2,6 +2,7 @@ package com.mrkirby153.tgabot.commands
 
 import com.mrkirby153.bfs.Tuple
 import com.mrkirby153.bfs.model.Model
+import com.mrkirby153.bfs.sql.DB
 import com.mrkirby153.botcore.command.Command
 import com.mrkirby153.botcore.command.CommandException
 import com.mrkirby153.botcore.command.Context
@@ -48,7 +49,8 @@ class PollCommands {
         category.channel = channelId
         category.save()
         PollDisplayManager.update(category)
-        context.channel.sendMessage("Created category `$name` with id **${category.id}** in <#$channelId>").queue()
+        context.channel.sendMessage(
+                "Created category `$name` with id **${category.id}** in <#$channelId>").queue()
     }
 
     @Command(name = "import", parent = "poll", clearance = 100)
@@ -151,6 +153,26 @@ class PollCommands {
         PollResultHandler.updateMessage()
         PollResultHandler.verifyConfiguration()
         msg.editMessage(":ballot_box_with_check: Verified").queue()
+    }
+
+    @Command(name = "update-role", parent = "poll", clearance = 100)
+    fun updateVotedRoleMembers(context: Context, cmdContext: CommandContext) {
+        context.channel.sendMessage("Updating the `Voted` role...").queue { msg ->
+            val votedRole = Bot.tgaGuild.getRoleById(PollResultHandler.tgaRoleId)
+            val votedMembers = DB.getFirstColumnValues<String>("SELECT DISTINCT user FROM votes")
+
+            val membersNeedingRole = Bot.tgaGuild.members.filter {
+                it.user.id in votedMembers && votedRole !in it.roles && Bot.tgaGuild.selfMember.canInteract(
+                        it)
+            }
+
+            msg.editMessage(
+                    "Adding the `Voted` role to **${membersNeedingRole.size}** members").queue()
+            membersNeedingRole.forEach { member ->
+                Bot.tgaGuild.controller.addSingleRoleToMember(member, votedRole).queue()
+            }
+        }
+
     }
 
     @Command(name = "gwinner", parent = "poll", clearance = 100)
