@@ -6,7 +6,7 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException
 import java.text.SimpleDateFormat
 import java.util.LinkedList
 
-class LogPump(private val targetChannel: TextChannel, private val sleepDuration: Long = 5000) :
+class LogPump(private val targetChannelId: String, private val sleepDuration: Long = 5000) :
         Runnable {
 
     private val queued = LinkedList<String>()
@@ -16,6 +16,9 @@ class LogPump(private val targetChannel: TextChannel, private val sleepDuration:
     private val thread: Thread = Thread(this)
 
     private var quietPeriod = -1L
+
+    private val targetChannel: TextChannel
+        get() = Bot.tgaGuild.getTextChannelById(targetChannelId)
 
     init {
         thread.name = "LogPump/#${targetChannel.name}"

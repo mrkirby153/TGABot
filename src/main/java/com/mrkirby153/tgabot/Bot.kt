@@ -76,7 +76,7 @@ object Bot {
         bot.addListener(PollResultHandler)
         bot.addListener(AmaManager.Listener())
 
-        adminLog = LogPump(tgaGuild.getTextChannelById(properties.getProperty("log-channel")))
+        adminLog = LogPump(properties.getProperty("log-channel"))
 
         commands = CommandExecutor(prefix = "!", shardManager = bot)
         commands.alertNoClearance = false

@@ -29,6 +29,7 @@ object PollManager {
     fun onStartup() {
         // Loop through all the polls and ensure the reactions are in place as well as tally any offline votes
         Bot.logger.info("Verifying polls, this may take some time")
+        Bot.adminLog.log("Verifying polls, this may take some time")
         val msgs = mutableMapOf<String, Message?>()
         val categories = Model.query(PollCategory::class.java).get()
         for (i in 0 until categories.size) {
@@ -63,6 +64,7 @@ object PollManager {
             PollDisplayManager.update(category)
         }
         Bot.logger.debug("Poll verification complete!")
+        Bot.adminLog.log("Polls verified")
     }
 
     fun registerVote(user: User, category: PollCategory, option: PollOption, log: Boolean = true): PollVote? {
