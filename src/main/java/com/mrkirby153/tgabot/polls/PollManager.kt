@@ -154,7 +154,6 @@ object PollManager {
             channel.getMessageById(messageId).complete()?.addReaction(emote)?.queue()
         }
         option.save()
-        PollListener.optionCache.refresh(messageId)
         PollListener.msgCache.invalidate(messageId)
         return option
     }

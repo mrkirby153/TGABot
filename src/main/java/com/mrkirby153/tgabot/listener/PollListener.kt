@@ -1,7 +1,6 @@
 package com.mrkirby153.tgabot.listener
 
 import com.google.common.cache.CacheBuilder
-import com.google.common.cache.CacheLoader
 import com.mrkirby153.bfs.model.Model
 import com.mrkirby153.tgabot.Bot
 import com.mrkirby153.tgabot.db.models.PollCategory
@@ -17,22 +16,6 @@ class PollListener : ListenerAdapter() {
     companion object {
         val reactionManager = ReactionManager()
 
-        val optionCache = CacheBuilder.newBuilder().expireAfterWrite(10,
-                TimeUnit.MINUTES).build(object : CacheLoader<String, List<PollOption>>() {
-            override fun load(mid: String): List<PollOption> {
-                return Model.query(PollOption::class.java).where("message_id", mid).get()
-            }
-        })
-
-        val categoryCache = CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build(
-                object : CacheLoader<Long, PollCategory>() {
-                    override fun load(category: Long): PollCategory {
-                        return Model.query(PollCategory::class.java).where("id", category).first()
-                    }
-
-                }
-        )
-
         val msgCache = CacheBuilder.newBuilder().expireAfterWrite(10,
                 TimeUnit.MINUTES).build<String, Message>()
     }
@@ -41,16 +24,20 @@ class PollListener : ListenerAdapter() {
         Bot.executor.submit {
             if (event.member.user.id == event.guild.selfMember.user.id)
                 return@submit
-            val options = optionCache[event.messageId]
+            val options = Model.where(PollOption::class.java, "message_id", event.messageId).get()
             val option = options.firstOrNull {
-                if (event.reactionEmote.isEmote) {
+                if(event.reactionEmote.isEmote){
                     it.custom && it.reaction == event.reactionEmote.id
                 } else {
                     it.reaction == event.reactionEmote.name
                 }
-            } ?: return@submit
+            }
+            if(option == null) {
+                Bot.logger.info("No suitable poll option found for ${event.reactionEmote} in ${event.channel}")
+                return@submit
+            }
 
-            val category = categoryCache[option.category]
+            val category = Model.where(PollCategory::class.java, "id", option.category).first()
 
             val r = PollManager.registerVote(event.user, category, option)
 
